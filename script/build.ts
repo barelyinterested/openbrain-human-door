@@ -37,7 +37,7 @@ async function buildAll() {
   console.log("building client...");
   await viteBuild();
 
-  console.log("building server...");
+  console.log("building server (local dev)...");
   const pkg = JSON.parse(await readFile("package.json", "utf-8"));
   const allDeps = [
     ...Object.keys(pkg.dependencies || {}),
@@ -58,18 +58,29 @@ async function buildAll() {
     logLevel: "info",
   });
 
-  // Vercel serverless build — exports Express app without .listen()
+  // Vercel serverless build — ALL deps bundled inline, no external requires
+  // This compiles directly to api/index.js so Vercel recognizes it as a function
+  console.log("building Vercel serverless bundle...");
   await esbuild({
     entryPoints: ["server/vercel.ts"],
     platform: "node",
     bundle: true,
     format: "cjs",
-    outfile: "dist/vercel.cjs",
+    outfile: "api/index.js",
     define: { "process.env.NODE_ENV": '"production"' },
     minify: true,
-    external: externals,
+    // No external — bundle EVERYTHING so Vercel doesn't need node_modules
+    external: [
+      // Only exclude native Node.js built-ins
+      "fs", "path", "http", "https", "net", "tls", "crypto", "os", "url",
+      "stream", "buffer", "util", "events", "querystring", "zlib", "child_process",
+      "dns", "dgram", "cluster", "module", "readline", "repl", "vm",
+      "assert", "perf_hooks", "async_hooks", "worker_threads", "timers",
+    ],
     logLevel: "info",
   });
+
+  console.log("done!");
 }
 
 buildAll().catch((err) => {

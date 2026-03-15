@@ -1,9 +1,11 @@
 {
   "version": 2,
-  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist/public",
+  "installCommand": "npm install",
   "functions": {
     "api/index.js": {
-      "includeFiles": "dist/vercel.cjs"
+      "maxDuration": 30
     }
   },
   "rewrites": [
