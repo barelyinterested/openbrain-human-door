@@ -1,6 +1,6 @@
 import { build as esbuild } from "esbuild";
 import { build as viteBuild } from "vite";
-import { rm, readFile } from "fs/promises";
+import { rm, readFile, copyFile, mkdir } from "fs/promises";
 
 // server deps to bundle to reduce openat(2) syscalls
 // which helps cold start times
@@ -62,13 +62,13 @@ async function buildAll() {
     logLevel: "info",
   });
 
-  // Vercel serverless build (exports app without .listen())
+  // Vercel serverless build — output directly into api/ so Vercel bundles it
   await esbuild({
     entryPoints: ["server/vercel.ts"],
     platform: "node",
     bundle: true,
     format: "cjs",
-    outfile: "dist/vercel.cjs",
+    outfile: "api/server.cjs",
     define: {
       "process.env.NODE_ENV": '"production"',
     },
@@ -76,6 +76,8 @@ async function buildAll() {
     external: externals,
     logLevel: "info",
   });
+
+  console.log("built api/server.cjs for Vercel");
 }
 
 buildAll().catch((err) => {
