@@ -59,6 +59,43 @@ export const CATEGORIES = {
 
 export type CategoryKey = keyof typeof CATEGORIES;
 
+// Returns ALL categories this thought belongs to (can be multiple)
+export function inferCategories(thought: Thought): CategoryKey[] {
+  const topics = thought.metadata.topics?.map(t => t.toLowerCase()).join(" ") || "";
+  const content = thought.content.toLowerCase();
+  const combined = topics + " " + content;
+  const cats = new Set<CategoryKey>();
+
+  if (combined.includes("scentsy")) cats.add("scentsy");
+  if (combined.includes("health") || combined.includes("cpr") || combined.includes("inhaler") ||
+      combined.includes("doctor") || combined.includes("medication") || combined.includes("blood pressure") ||
+      combined.includes("medical")) cats.add("health");
+  // A thought belongs to People if it has people in metadata OR mentions personal/relationship keywords
+  if ((thought.metadata.people?.length || 0) > 0 || combined.includes("birthday") ||
+      combined.includes("anniversary") || combined.includes("family") ||
+      combined.includes("relationships") || combined.includes("contacts")) cats.add("people");
+  if (thought.metadata.type === "idea") cats.add("ideas");
+  if (combined.includes("infrastructure") || combined.includes("cron") || combined.includes("backup") ||
+      combined.includes("config") || combined.includes("deployment") || combined.includes("server") ||
+      combined.includes("api") || combined.includes("systemd") || combined.includes("openclaw") ||
+      combined.includes("truereall") || combined.includes("script") || combined.includes("validation")) cats.add("tech");
+  if (combined.includes("business") || combined.includes("sop") || combined.includes("agency") ||
+      combined.includes("local biz") || combined.includes("lead") || combined.includes("client") ||
+      combined.includes("marketing") || combined.includes("sales") || combined.includes("forgefire") ||
+      combined.includes("myna") || combined.includes("nexasignal") || combined.includes("localbiz") ||
+      combined.includes("outreach") || combined.includes("revenue")) cats.add("business");
+  if (combined.includes("soul") || combined.includes("memory") || combined.includes("agent") ||
+      combined.includes("preference") || combined.includes("tool") || combined.includes("vendor") ||
+      combined.includes("gmail") || combined.includes("workflow")) cats.add("operations");
+  if (thought.metadata.type === "reference") cats.add("reference");
+
+  // Fallback: if nothing matched, assign operations
+  if (cats.size === 0) cats.add("operations");
+
+  return Array.from(cats);
+}
+
+// Returns the single PRIMARY category (first matched, for backwards compat with cards/detail)
 export function inferCategory(thought: Thought): CategoryKey {
   const topics = thought.metadata.topics?.map(t => t.toLowerCase()).join(" ") || "";
   const content = thought.content.toLowerCase();

@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useTheme } from "@/components/ThemeProvider";
-import { Sun, Moon, Plus, Search, LayoutDashboard, LogOut } from "lucide-react";
-import { useState } from "react";
+import { Sun, Moon, Plus, Search, LayoutDashboard, LogOut, X } from "lucide-react";
+import { useSearch } from "@/lib/searchContext";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -9,21 +9,18 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const { theme, toggle } = useTheme();
-  const [location, navigate] = useLocation();
-  const [searchQuery, setSearchQuery] = useState("");
+  const [location] = useLocation();
+  const { query, setQuery } = useSearch();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/?search=${encodeURIComponent(searchQuery.trim())}`);
-    }
   };
 
   return (
     <div className="flex flex-col h-screen bg-background">
       {/* Top header */}
       <header className="flex items-center gap-3 px-4 py-3 border-b border-border bg-sidebar shrink-0 z-10">
-        <Link href="/" className="flex items-center gap-2 mr-2 no-underline">
+        <Link href="/" onClick={() => setQuery("")} className="flex items-center gap-2 mr-2 no-underline">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-label="OpenBrain" className="text-primary">
             <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5"/>
             <path d="M8 12c0-2.2 1.8-4 4-4s4 1.8 4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
@@ -40,11 +37,20 @@ export default function Layout({ children }: LayoutProps) {
             <input
               data-testid="input-search"
               type="search"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
+              value={query}
+              onChange={e => setQuery(e.target.value)}
               placeholder="Search your brain..."
-              className="w-full pl-8 pr-3 py-1.5 text-sm bg-muted border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
+              className="w-full pl-8 pr-8 py-1.5 text-sm bg-muted border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
             />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </form>
 

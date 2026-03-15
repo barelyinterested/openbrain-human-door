@@ -12,6 +12,7 @@ import Login from "@/pages/Login";
 import Layout from "@/components/Layout";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { useAuth } from "@/hooks/useAuth";
+import { SearchProvider } from "@/lib/searchContext";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -60,8 +61,10 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <AppRouter />
-        <Toaster />
+        <SearchProvider>
+          <AppRouter />
+          <Toaster />
+        </SearchProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

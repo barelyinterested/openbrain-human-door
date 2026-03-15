@@ -1,11 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import type { Thought } from "@shared/schema";
 import { inferCategory, getAlerts, CATEGORIES } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertTriangle, AlertCircle, Info, Heart, Users, Briefcase, Settings, BookOpen, Flame, Cpu, Lightbulb, ChevronRight, Clock, Tag } from "lucide-react";
+import { AlertTriangle, AlertCircle, Info, Heart, Users, Briefcase, Settings, BookOpen, Flame, Cpu, Lightbulb, Clock, Tag, X } from "lucide-react";
 import ThoughtCard from "@/components/ThoughtCard";
+import { useSearch } from "@/lib/searchContext";
+import { useState } from "react";
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
   health: Heart,
@@ -19,10 +21,8 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
 };
 
 export default function Dashboard() {
-  const [location] = useLocation();
-  const searchRaw = location.includes("?") ? location.split("?")[1] : "";
-  const params = new URLSearchParams(searchRaw);
-  const searchQuery = params.get("search") || "";
+  const { query: searchQuery, setQuery } = useSearch();
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<number>>(new Set());
 
   const { data: thoughts, isLoading } = useQuery<Thought[]>({
     queryKey: ["/api/thoughts", searchQuery],
@@ -51,9 +51,8 @@ export default function Dashboard() {
   }
 
   const allThoughts = thoughts || [];
-  const alerts = getAlerts(allThoughts);
+  const alerts = getAlerts(allThoughts).filter((_, i) => !dismissedAlerts.has(i));
 
-  // Group by category
   const byCategory = allThoughts.reduce<Record<string, Thought[]>>((acc, t) => {
     const cat = inferCategory(t);
     if (!acc[cat]) acc[cat] = [];
@@ -62,6 +61,10 @@ export default function Dashboard() {
   }, {});
 
   const recentThoughts = [...allThoughts].slice(0, 6);
+
+  const dismissAlert = (globalIndex: number) => {
+    setDismissedAlerts(prev => new Set([...prev, globalIndex]));
+  };
 
   return (
     <div className="p-4 space-y-6 max-w-5xl mx-auto">
@@ -72,7 +75,7 @@ export default function Dashboard() {
           <h2 className="text-sm font-medium text-muted-foreground">
             {allThoughts.length} result{allThoughts.length !== 1 ? "s" : ""} for <span className="text-foreground">"{searchQuery}"</span>
           </h2>
-          <Link href="/" className="text-xs text-primary hover:underline">Clear</Link>
+          <button onClick={() => setQuery("")} className="text-xs text-primary hover:underline">Clear</button>
         </div>
       )}
 
@@ -81,16 +84,24 @@ export default function Dashboard() {
         <section>
           <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Alerts</h2>
           <div className="space-y-2">
-            {alerts.map((alert, i) => {
+            {getAlerts(allThoughts).map((alert, i) => {
+              if (dismissedAlerts.has(i)) return null;
               const Icon = alert.level === "critical" ? AlertCircle : alert.level === "warning" ? AlertTriangle : Info;
               const cls = alert.level === "critical" ? "alert-critical" : alert.level === "warning" ? "alert-warning" : "alert-info";
               return (
-                <Link key={i} href={`/thought/${alert.thought.id}`}>
-                  <div data-testid={`alert-item-${i}`} className={`flex items-start gap-2.5 px-3 py-2.5 rounded-lg border text-sm cursor-pointer hover:opacity-80 transition-opacity ${cls}`}>
-                    <Icon className="w-4 h-4 mt-0.5 shrink-0" />
-                    <span className="line-clamp-2">{alert.message}</span>
-                  </div>
-                </Link>
+                <div key={i} data-testid={`alert-item-${i}`} className={`flex items-start gap-2.5 px-3 py-2.5 rounded-lg border text-sm ${cls}`}>
+                  <Icon className="w-4 h-4 mt-0.5 shrink-0" />
+                  <Link href={`/thought/${alert.thought.id}`} className="flex-1 line-clamp-2 cursor-pointer hover:opacity-80">
+                    {alert.message}
+                  </Link>
+                  <button
+                    onClick={() => dismissAlert(i)}
+                    aria-label="Dismiss alert"
+                    className="shrink-0 opacity-50 hover:opacity-100 transition-opacity"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               );
             })}
           </div>
@@ -130,7 +141,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Categories */}
+      {/* Categories + Recent */}
       {!searchQuery && (
         <>
           <section>
@@ -159,7 +170,6 @@ export default function Dashboard() {
             </div>
           </section>
 
-          {/* Recent thoughts */}
           <section>
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
@@ -177,7 +187,6 @@ export default function Dashboard() {
   );
 }
 
-// import Brain here since it was used as a value not a type
 function Brain(props: any) {
   return (
     <svg {...props} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
