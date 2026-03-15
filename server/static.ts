@@ -7,9 +7,9 @@ export function serveStatic(app: Express) {
   // Static files are at dist/public/ relative to the project root.
   // Try multiple candidate paths in order:
   const candidates = [
-    path.resolve(__dirname, "public"),          // compiled to dist/vercel.cjs  → dist/public
-    path.resolve(__dirname, "../dist/public"),  // compiled to api/index.js     → dist/public
-    path.resolve(process.cwd(), "dist", "public"), // fallback via cwd
+    path.resolve(process.cwd(), "dist", "public"), // Vercel: cwd is /var/task, static at dist/public
+    path.resolve(__dirname, "../dist/public"),      // compiled to api/index.js → dist/public
+    path.resolve(__dirname, "public"),              // compiled to dist/index.cjs → dist/public
   ];
 
   let distPath: string | null = null;
