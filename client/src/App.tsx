@@ -26,7 +26,6 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   }
 
   if (!isAuthenticated) {
-    // Redirect to login
     setTimeout(() => setLocation("/login"), 0);
     return null;
   }
@@ -39,17 +38,19 @@ function AppRouter() {
     <Router hook={useHashLocation}>
       <Switch>
         <Route path="/login" component={Login} />
-        <Route path="/">
-          <Layout>
-            <Switch>
-              <Route path="/" component={() => <ProtectedRoute component={Dashboard} />} />
-              <Route path="/category/:key" component={() => <ProtectedRoute component={CategoryView} />} />
-              <Route path="/thought/:id" component={() => <ProtectedRoute component={ThoughtDetail} />} />
-              <Route path="/add" component={() => <ProtectedRoute component={AddThought} />} />
-              <Route component={NotFound} />
-            </Switch>
-          </Layout>
+        <Route path="/category/:key">
+          <Layout><ProtectedRoute component={CategoryView} /></Layout>
         </Route>
+        <Route path="/thought/:id">
+          <Layout><ProtectedRoute component={ThoughtDetail} /></Layout>
+        </Route>
+        <Route path="/add">
+          <Layout><ProtectedRoute component={AddThought} /></Layout>
+        </Route>
+        <Route path="/">
+          <Layout><ProtectedRoute component={Dashboard} /></Layout>
+        </Route>
+        <Route component={NotFound} />
       </Switch>
     </Router>
   );
