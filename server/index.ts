@@ -1,4 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
+import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
 import { setupAuth } from "./auth";
 import { serveStatic } from "./static";
@@ -22,8 +23,9 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
 
-// Auth setup (session + passport + /auth/* routes)
+// Auth setup (cookie-based auth + /auth/* routes)
 setupAuth(app);
 
 export function log(message: string, source = "express") {

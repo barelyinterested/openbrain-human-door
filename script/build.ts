@@ -3,6 +3,7 @@ import { build as viteBuild } from "vite";
 import { rm, readFile } from "fs/promises";
 
 const allowlist = [
+  "cookie-parser",
   "@google/generative-ai",
   "axios",
   "connect-pg-simple",
