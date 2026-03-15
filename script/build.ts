@@ -62,22 +62,23 @@ async function buildAll() {
     logLevel: "info",
   });
 
-  // Vercel serverless build — output directly into api/ so Vercel bundles it
+  // Vercel serverless build — single fully self-contained file at api/index.js
+  // Bundle ALL dependencies (nothing external) so Vercel needs zero node_modules
   await esbuild({
     entryPoints: ["server/vercel.ts"],
     platform: "node",
     bundle: true,
     format: "cjs",
-    outfile: "api/server.cjs",
+    outfile: "api/index.js",
     define: {
       "process.env.NODE_ENV": '"production"',
     },
     minify: true,
-    external: externals,
+    // Bundle everything — no externals for Vercel
     logLevel: "info",
   });
 
-  console.log("built api/server.cjs for Vercel");
+  console.log("built api/index.js for Vercel (fully self-contained)");
 }
 
 buildAll().catch((err) => {
