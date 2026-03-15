@@ -62,7 +62,9 @@ export function setupAuth(app: Express) {
       });
     }
 
-    if (!passphrase || passphrase.trim() !== expected.trim()) {
+    // Normalize both sides: trim whitespace, collapse internal spaces, lowercase
+    const normalize = (s: string) => s.trim().replace(/\s+/g, " ").toLowerCase();
+    if (!passphrase || normalize(passphrase) !== normalize(expected)) {
       return res.status(401).json({ error: "Incorrect passphrase." });
     }
 

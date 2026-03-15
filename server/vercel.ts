@@ -35,6 +35,20 @@ app.get("/auth/debug", (_req, res) => {
     length: val ? val.length : 0,
     firstChar: val ? val[0] : null,
     lastChar: val ? val[val.length - 1] : null,
+    charCodes: val ? Array.from(val).map(c => c.charCodeAt(0)) : [],
+  });
+});
+
+// Debug: echo back what was submitted
+app.post("/auth/debug-login", (req: any, res: any) => {
+  const { passphrase } = req.body;
+  const expected = process.env.ACCESS_PASSPHRASE;
+  res.json({
+    submittedLength: passphrase ? passphrase.length : 0,
+    expectedLength: expected ? expected.length : 0,
+    submittedCodes: passphrase ? Array.from(passphrase as string).map((c: string) => c.charCodeAt(0)) : [],
+    expectedCodes: expected ? Array.from(expected).map(c => c.charCodeAt(0)) : [],
+    match: passphrase && expected ? passphrase.trim() === expected.trim() : false,
   });
 });
 
