@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Link } from "wouter";
 import type { Thought } from "@shared/schema";
-import { inferCategory, getAlerts, CATEGORIES } from "@shared/schema";
+import { inferCategories, getAlerts, CATEGORIES } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertTriangle, AlertCircle, Info, Heart, Users, Briefcase, Settings, BookOpen, Flame, Cpu, Lightbulb, Clock, Tag, X } from "lucide-react";
 import ThoughtCard from "@/components/ThoughtCard";
@@ -30,6 +30,8 @@ export default function Dashboard() {
       const url = searchQuery ? `/api/thoughts?search=${encodeURIComponent(searchQuery)}` : "/api/thoughts";
       return apiRequest("GET", url).then(r => r.json());
     },
+    // Search results can go stale — don't cache indefinitely
+    staleTime: searchQuery ? 0 : Infinity,
   });
 
   const { data: stats } = useQuery({
@@ -53,10 +55,12 @@ export default function Dashboard() {
   const allThoughts = thoughts || [];
   const alerts = getAlerts(allThoughts).filter((_, i) => !dismissedAlerts.has(i));
 
+  // Use inferCategories so counts match what's actually inside each category view
   const byCategory = allThoughts.reduce<Record<string, Thought[]>>((acc, t) => {
-    const cat = inferCategory(t);
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(t);
+    for (const cat of inferCategories(t)) {
+      if (!acc[cat]) acc[cat] = [];
+      acc[cat].push(t);
+    }
     return acc;
   }, {});
 

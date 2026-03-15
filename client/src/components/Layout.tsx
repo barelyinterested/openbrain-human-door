@@ -2,6 +2,7 @@ import { Link, useLocation } from "wouter";
 import { useTheme } from "@/components/ThemeProvider";
 import { Sun, Moon, Plus, Search, LayoutDashboard, LogOut, X } from "lucide-react";
 import { useSearch } from "@/lib/searchContext";
+import { useHashLocation } from "wouter/use-hash-location";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,7 +11,16 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const { theme, toggle } = useTheme();
   const [location] = useLocation();
+  const [, navigate] = useHashLocation();
   const { query, setQuery } = useSearch();
+
+  const handleSearchChange = (value: string) => {
+    setQuery(value);
+    // If not already on the dashboard, go there so results are visible
+    if (value && location !== "/") {
+      navigate("/");
+    }
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +48,7 @@ export default function Layout({ children }: LayoutProps) {
               data-testid="input-search"
               type="search"
               value={query}
-              onChange={e => setQuery(e.target.value)}
+              onChange={e => handleSearchChange(e.target.value)}
               placeholder="Search your brain..."
               className="w-full pl-8 pr-8 py-1.5 text-sm bg-muted border border-border rounded-md focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
             />
