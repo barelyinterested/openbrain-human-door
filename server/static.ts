@@ -1,35 +1,22 @@
-import express, { type Express } from "express";
+import express, { type Express, type Request, type Response } from "express";
 import fs from "fs";
 import path from "path";
 
 export function serveStatic(app: Express) {
-  // When compiled to api/index.js, __dirname is the api/ folder.
-  // Static files are at dist/public/ relative to the project root.
-  // Try multiple candidate paths in order:
-  const candidates = [
-    path.resolve(process.cwd(), "dist", "public"), // Vercel: cwd is /var/task, static at dist/public
-    path.resolve(__dirname, "../dist/public"),      // compiled to api/index.js → dist/public
-    path.resolve(__dirname, "public"),              // compiled to dist/index.cjs → dist/public
-  ];
+  // When compiled to api/index.js, __dirname = /var/task/api
+  // The build script copies dist/public → api/public, so it's always adjacent
+  const distPath = path.join(__dirname, "public");
 
-  let distPath: string | null = null;
-  for (const candidate of candidates) {
-    if (fs.existsSync(candidate)) {
-      distPath = candidate;
-      break;
-    }
-  }
-
-  if (!distPath) {
+  if (!fs.existsSync(distPath)) {
     throw new Error(
-      `Could not find the build directory. Tried: ${candidates.join(", ")}. Make sure to build the client first.`,
+      `Could not find static files at ${distPath}. Make sure to build the client first.`
     );
   }
 
   app.use(express.static(distPath));
 
-  // fall through to index.html for client-side routing
-  app.use("/{*path}", (_req, res) => {
-    res.sendFile(path.resolve(distPath!, "index.html"));
+  // SPA fallback
+  app.use("/{*path}", (_req: Request, res: Response) => {
+    res.sendFile(path.join(distPath, "index.html"));
   });
 }

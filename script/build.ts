@@ -1,6 +1,6 @@
 import { build as esbuild } from "esbuild";
 import { build as viteBuild } from "vite";
-import { rm, readFile } from "fs/promises";
+import { rm, readFile, cp } from "fs/promises";
 
 const allowlist = [
   "cookie-parser",
@@ -80,6 +80,10 @@ async function buildAll() {
     ],
     logLevel: "info",
   });
+
+  // Copy dist/public into api/public so Vercel's function can always find static files
+  console.log("copying static files into api/public...");
+  await cp("dist/public", "api/public", { recursive: true });
 
   console.log("done!");
 }
