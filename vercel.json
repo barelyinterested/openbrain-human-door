@@ -2,19 +2,14 @@
   "version": 2,
   "buildCommand": "npm run build",
   "installCommand": "npm install",
-  "builds": [
-    {
-      "src": "api/index.cjs",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": ["dist/**"]
-      }
+  "outputDirectory": ".",
+  "framework": null,
+  "functions": {
+    "api/index.cjs": {
+      "includeFiles": "dist/**"
     }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/api/index.cjs"
-    }
+  },
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/api/index.cjs" }
   ]
 }
