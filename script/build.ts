@@ -1,9 +1,7 @@
 import { build as esbuild } from "esbuild";
 import { build as viteBuild } from "vite";
-import { rm, readFile, copyFile, mkdir } from "fs/promises";
+import { rm, readFile } from "fs/promises";
 
-// server deps to bundle to reduce openat(2) syscalls
-// which helps cold start times
 const allowlist = [
   "@google/generative-ai",
   "axios",
@@ -47,38 +45,31 @@ async function buildAll() {
   ];
   const externals = allDeps.filter((dep) => !allowlist.includes(dep));
 
-  // Standard server build (for local / traditional hosting)
+  // Standard server (local dev / traditional hosting)
   await esbuild({
     entryPoints: ["server/index.ts"],
     platform: "node",
     bundle: true,
     format: "cjs",
     outfile: "dist/index.cjs",
-    define: {
-      "process.env.NODE_ENV": '"production"',
-    },
+    define: { "process.env.NODE_ENV": '"production"' },
     minify: true,
     external: externals,
     logLevel: "info",
   });
 
-  // Vercel serverless build — single fully self-contained file at api/index.js
-  // Bundle ALL dependencies (nothing external) so Vercel needs zero node_modules
+  // Vercel serverless build — exports Express app without .listen()
   await esbuild({
     entryPoints: ["server/vercel.ts"],
     platform: "node",
     bundle: true,
     format: "cjs",
-    outfile: "api/index.js",
-    define: {
-      "process.env.NODE_ENV": '"production"',
-    },
+    outfile: "dist/vercel.cjs",
+    define: { "process.env.NODE_ENV": '"production"' },
     minify: true,
-    // Bundle everything — no externals for Vercel
+    external: externals,
     logLevel: "info",
   });
-
-  console.log("built api/index.js for Vercel (fully self-contained)");
 }
 
 buildAll().catch((err) => {
