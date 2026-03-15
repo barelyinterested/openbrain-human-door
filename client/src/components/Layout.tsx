@@ -1,6 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { useTheme } from "@/components/ThemeProvider";
-import { Sun, Moon, Plus, Search, LayoutDashboard } from "lucide-react";
+import { Sun, Moon, Plus, Search, LayoutDashboard, LogOut } from "lucide-react";
 import { useState } from "react";
 
 interface LayoutProps {
@@ -66,6 +66,14 @@ export default function Layout({ children }: LayoutProps) {
           >
             {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
+          <a
+            href="/auth/logout"
+            aria-label="Sign out"
+            title="Sign out"
+            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+          </a>
         </div>
       </header>
 
