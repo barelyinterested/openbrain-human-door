@@ -2,11 +2,10 @@
   "version": 2,
   "buildCommand": "npm run build",
   "installCommand": "npm install",
-  "outputDirectory": ".",
   "framework": null,
   "functions": {
     "api/index.cjs": {
-      "includeFiles": "dist/**"
+      "includeFiles": "api/server.cjs"
     }
   },
   "rewrites": [
