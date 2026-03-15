@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import type { Server } from "http";
 import { insertThoughtSchema, updateThoughtSchema } from "@shared/schema";
+import { requireAuth } from "./auth";
 
 const SUPABASE_URL = "https://pqlbnvefkqbfwinfszbf.supabase.co";
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY!;
@@ -15,6 +16,9 @@ function supabaseHeaders() {
 }
 
 export function registerRoutes(httpServer: Server, app: Express) {
+  // All /api/* routes require authentication
+  app.use("/api", requireAuth);
+
   // GET all thoughts
   app.get("/api/thoughts", async (req, res) => {
     try {
