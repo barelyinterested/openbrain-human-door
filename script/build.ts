@@ -46,12 +46,28 @@ async function buildAll() {
   ];
   const externals = allDeps.filter((dep) => !allowlist.includes(dep));
 
+  // Standard server build (for local / traditional hosting)
   await esbuild({
     entryPoints: ["server/index.ts"],
     platform: "node",
     bundle: true,
     format: "cjs",
     outfile: "dist/index.cjs",
+    define: {
+      "process.env.NODE_ENV": '"production"',
+    },
+    minify: true,
+    external: externals,
+    logLevel: "info",
+  });
+
+  // Vercel serverless build (exports app without .listen())
+  await esbuild({
+    entryPoints: ["server/vercel.ts"],
+    platform: "node",
+    bundle: true,
+    format: "cjs",
+    outfile: "dist/vercel.cjs",
     define: {
       "process.env.NODE_ENV": '"production"',
     },
