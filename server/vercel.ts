@@ -27,6 +27,17 @@ app.use(
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
+// Temporary debug endpoint — remove after verifying auth works
+app.get("/auth/debug", (_req, res) => {
+  const val = process.env.ACCESS_PASSPHRASE;
+  res.json({
+    hasPassphrase: !!val,
+    length: val ? val.length : 0,
+    firstChar: val ? val[0] : null,
+    lastChar: val ? val[val.length - 1] : null,
+  });
+});
+
 // Auth setup (cookie-based auth + /auth/* routes)
 setupAuth(app);
 
