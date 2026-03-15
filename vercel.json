@@ -4,11 +4,11 @@
   "installCommand": "npm install",
   "framework": null,
   "functions": {
-    "api/index.cjs": {
+    "api/index.js": {
       "includeFiles": "api/server.cjs"
     }
   },
   "rewrites": [
-    { "source": "/(.*)", "destination": "/api/index.cjs" }
+    { "source": "/(.*)", "destination": "/api/index.js" }
   ]
 }
