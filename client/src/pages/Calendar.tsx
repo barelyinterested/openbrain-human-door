@@ -6,9 +6,8 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import { EventClickArg } from '@fullcalendar/core'
-import { createClient } from '@supabase/supabase-js'
 
-const SUPABASE_URL = 'https://pqlbnvefkqbfwinfszbf.supabase.co'
+const MCP_ENDPOINT = 'https://pqlbnvefkqbfwinfszbf.supabase.co/functions/v1/scentsy-crm-mcp'
 const CAROLA_KEY = '917fb39b079411c7629d620ef46797dd9f3f37c96801bd6f90f9fab35ed2c97e'
 
 export interface ScentsyEvent {
@@ -83,18 +82,30 @@ export default function Calendar() {
   )
 
   useEffect(() => {
-    // Fetch Carola's events on page load - no login required
-    const supabase = createClient(SUPABASE_URL, CAROLA_KEY)
-    
-    supabase
-      .from('scentsy_events')
-      .select('*')
-      .order('start_time', { ascending: true })
-      .then(({ data, error }) => {
-        if (error) {
-          setError(error.message)
+    // Fetch Carola's events via MCP endpoint - no login required
+    fetch(`${MCP_ENDPOINT}?key=${CAROLA_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'tools/call',
+        params: {
+          name: 'list_events',
+          arguments: { limit: 100 }
+        }
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) {
+          throw new Error(data.error.message || 'MCP call failed')
+        }
+        if (data.result?.content?.[0]?.text) {
+          const parsed = JSON.parse(data.result.content[0].text)
+          setEvents(Array.isArray(parsed) ? parsed : [])
         } else {
-          setEvents(data || [])
+          setEvents([])
         }
         setLoading(false)
       })
@@ -192,7 +203,7 @@ export default function Calendar() {
             <div className="text-6xl mb-4">📭</div>
             <h2 className="text-xl font-semibold mb-2 text-foreground">No Events Found</h2>
             <p className="text-muted-foreground">
-              You don't have any scheduled events yet. Add some events to see them here!
+              You don't have any scheduled events yet. Add some events via Hermes or the MCP tools!
             </p>
           </div>
         ) : (
