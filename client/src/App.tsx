@@ -7,6 +7,7 @@ import Dashboard from "@/pages/Dashboard";
 import CategoryView from "@/pages/CategoryView";
 import ThoughtDetail from "@/pages/ThoughtDetail";
 import AddThought from "@/pages/AddThought";
+import Calendar from "@/pages/Calendar";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/Login";
 import Layout from "@/components/Layout";
@@ -47,6 +48,9 @@ function AppRouter() {
         </Route>
         <Route path="/add">
           <Layout><ProtectedRoute component={AddThought} /></Layout>
+        </Route>
+        <Route path="/calendar">
+          <ProtectedRoute component={Calendar} />
         </Route>
         <Route path="/">
           <Layout><ProtectedRoute component={Dashboard} /></Layout>
