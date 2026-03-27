@@ -9,11 +9,7 @@ import { EventClickArg } from '@fullcalendar/core'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 const SUPABASE_URL = 'https://pqlbnvefkqbfwinfszbf.supabase.co'
-
-const KNOWN_KEYS: Record<string, string> = {
-  '16ca87127e810118c2784fd846ab433908af039afe0e1de4003e970ad87bc38e': 'john',
-  '917fb39b079411c7629d620ef46797dd9f3f37c96801bd6f90f9fab35ed2c97e': 'carola',
-}
+const CAROLA_KEY = '917fb39b079411c7629d620ef46797dd9f3f37c96801bd6f90f9fab35ed2c97e'
 
 export interface ScentsyEvent {
   id: string
