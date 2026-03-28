@@ -3,8 +3,13 @@ import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 
 // Supabase configuration
-const SUPABASE_URL = "https://pqlbnvefkqbfwinfszbf.supabase.co";
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "sb_secret_pjRefw7iSOVR7ZjtBg_UMg_nFwcFaRj";
+const SUPABASE_URL = process.env.SUPABASE_URL || "https://pqlbnvefkqbfwinfszbf.supabase.co";
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!SUPABASE_SERVICE_ROLE_KEY) {
+  console.error("ERROR: SUPABASE_SERVICE_ROLE_KEY environment variable not set!");
+  process.exit(1);
+}
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
