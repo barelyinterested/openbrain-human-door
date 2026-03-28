@@ -3,6 +3,7 @@ import { z } from "zod";
 // Represents a thought entry from Supabase
 export const thoughtSchema = z.object({
   id: z.string(),
+  user_id: z.string(),
   content: z.string(),
   metadata: z.object({
     type: z.enum(["observation", "reference", "task", "idea"]).optional(),
@@ -12,12 +13,14 @@ export const thoughtSchema = z.object({
     action_items: z.array(z.string()).optional().default([]),
     dates_mentioned: z.array(z.string()).optional().default([]),
     slack_ts: z.string().optional(),
+    shared: z.boolean(),
   }).passthrough(),
   created_at: z.string(),
   updated_at: z.string(),
 });
 
 export const insertThoughtSchema = z.object({
+  user_id: z.string(),
   content: z.string().min(1, "Content is required"),
   metadata: z.object({
     type: z.enum(["observation", "reference", "task", "idea"]).default("observation"),
@@ -26,6 +29,7 @@ export const insertThoughtSchema = z.object({
     topics: z.array(z.string()).default([]),
     action_items: z.array(z.string()).default([]),
     dates_mentioned: z.array(z.string()).default([]),
+    shared: z.boolean().default(false),
   }).default({}),
 });
 

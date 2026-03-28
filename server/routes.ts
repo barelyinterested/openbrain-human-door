@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import type { Server } from "http";
 import { insertThoughtSchema, updateThoughtSchema } from "@shared/schema";
-import { requireAuth } from "./auth";
+import { requireAuth, getCurrentUser } from "./auth";
 
 const SUPABASE_URL = "https://pqlbnvefkqbfwinfszbf.supabase.co";
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY!;
@@ -23,7 +23,10 @@ export function registerRoutes(httpServer: Server, app: Express) {
   app.get("/api/thoughts", async (req, res) => {
     try {
       const { search, category, type } = req.query;
-      let url = `${SUPABASE_URL}/rest/v1/thoughts?select=id,content,metadata,created_at,updated_at&order=created_at.desc`;
+      const user = getCurrentUser(req);
+      if (!user) return res.status(401).json({ error: "Not authenticated" });
+
+      let url = `${SUPABASE_URL}/rest/v1/thoughts?select=id,content,metadata,user_id,shared,created_at,updated_at&order=created_at.desc`;
 
       const resp = await fetch(url, { headers: supabaseHeaders() });
       if (!resp.ok) {
@@ -31,6 +34,9 @@ export function registerRoutes(httpServer: Server, app: Express) {
         return res.status(resp.status).json({ error: err });
       }
       let data = await resp.json();
+
+      // Filter by user: show user's own thoughts OR shared thoughts
+      data = data.filter((t: any) => t.user_id === user.user_id || t.shared === true);
 
       // Filter in JS (simpler than Supabase JSON filtering for complex cases)
       if (search && typeof search === "string" && search.trim()) {
@@ -70,6 +76,9 @@ export function registerRoutes(httpServer: Server, app: Express) {
   // POST create thought
   app.post("/api/thoughts", async (req, res) => {
     try {
+      const user = getCurrentUser(req);
+      if (!user) return res.status(401).json({ error: "Not authenticated" });
+
       const parsed = insertThoughtSchema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ error: parsed.error.flatten() });
 
@@ -77,7 +86,7 @@ export function registerRoutes(httpServer: Server, app: Express) {
       const resp = await fetch(url, {
         method: "POST",
         headers: supabaseHeaders(),
-        body: JSON.stringify(parsed.data),
+        body: JSON.stringify({ ...parsed.data, user_id: user.user_id }),
       });
       if (!resp.ok) return res.status(resp.status).json({ error: await resp.text() });
       const data = await resp.json();
@@ -127,10 +136,16 @@ export function registerRoutes(httpServer: Server, app: Express) {
   // GET stats summary
   app.get("/api/stats", async (req, res) => {
     try {
-      const url = `${SUPABASE_URL}/rest/v1/thoughts?select=metadata,created_at`;
+      const user = getCurrentUser(req);
+      if (!user) return res.status(401).json({ error: "Not authenticated" });
+
+      const url = `${SUPABASE_URL}/rest/v1/thoughts?select=metadata,user_id,shared,created_at`;
       const resp = await fetch(url, { headers: supabaseHeaders() });
       if (!resp.ok) return res.status(resp.status).json({ error: await resp.text() });
-      const data = await resp.json();
+      const allData = await resp.json();
+
+      // Filter to user's own thoughts + shared thoughts
+      const data = allData.filter((t: any) => t.user_id === user.user_id || t.shared === true);
 
       const types: Record<string, number> = {};
       const sources: Record<string, number> = {};

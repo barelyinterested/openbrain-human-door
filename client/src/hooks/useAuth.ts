@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 
 interface AuthState {
   authenticated: boolean;
+  user_id?: string;
+  email?: string;
 }
 
 export function useAuth() {
@@ -19,6 +21,8 @@ export function useAuth() {
   return {
     isLoading,
     isAuthenticated: data?.authenticated ?? false,
+    user_id: data?.user_id,
+    email: data?.email,
     refetch,
   };
 }

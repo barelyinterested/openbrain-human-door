@@ -1,5 +1,12 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import crypto from "crypto";
+import { createClient } from "@supabase/supabase-js";
+
+// Supabase configuration
+const SUPABASE_URL = "https://pqlbnvefkqbfwinfszbf.supabase.co";
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "sb_secret_pjRefw7iSOVR7ZjtBg_UMg_nFwcFaRj";
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
 // Sign a value with the session secret so it can't be forged
 function sign(value: string, secret: string): string {
@@ -27,9 +34,15 @@ function getSecret(): string {
   return process.env.SESSION_SECRET || "openbrain-dev-secret-change-in-prod";
 }
 
-function setAuthCookie(res: Response) {
+interface AuthCookieData {
+  user_id: string;
+  email: string;
+}
+
+function setAuthCookie(res: Response, userId: string, email: string) {
   const secret = getSecret();
-  const value = sign("authenticated", secret);
+  const data: AuthCookieData = { user_id: userId, email };
+  const value = sign(JSON.stringify(data), secret);
   res.cookie(COOKIE_NAME, value, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -43,45 +56,93 @@ function clearAuthCookie(res: Response) {
   res.clearCookie(COOKIE_NAME, { path: "/" });
 }
 
-export function isAuthenticated(req: Request): boolean {
+function getAuthData(req: Request): AuthCookieData | null {
   const raw = req.cookies?.[COOKIE_NAME];
-  if (!raw) return false;
+  if (!raw) return null;
   const result = unsign(raw, getSecret());
-  return result === "authenticated";
+  if (!result || result === "authenticated") return null;
+  try {
+    return JSON.parse(result);
+  } catch {
+    return null;
+  }
+}
+
+export function isAuthenticated(req: Request): boolean {
+  const data = getAuthData(req);
+  return data !== null && !!data.user_id;
+}
+
+export function getCurrentUser(req: Request): { user_id: string; email: string } | null {
+  return getAuthData(req);
 }
 
 export function setupAuth(app: Express) {
-  // POST /auth/login — check passphrase, set signed cookie
-  app.post("/auth/login", (req: Request, res: Response) => {
-    const { passphrase } = req.body;
-    const expected = process.env.ACCESS_PASSPHRASE;
+  // GET /auth/google — initiate Google OAuth flow via Supabase
+  app.get("/auth/google", (req: Request, res: Response) => {
+    const { data, error } = supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${process.env.BASE_URL || "https://door.nsnc.xyz"}/auth/callback`,
+      },
+    });
 
-    if (!expected) {
-      return res.status(503).json({
-        error: "Server not configured. Set ACCESS_PASSPHRASE in Vercel environment variables.",
-      });
+    if (error || !data.url) {
+      return res.status(500).json({ error: "Failed to initiate OAuth flow" });
     }
 
-    // Normalize both sides: trim whitespace, collapse internal spaces, lowercase
-    const normalize = (s: string) => s.trim().replace(/\s+/g, " ").toLowerCase();
-    if (!passphrase || normalize(passphrase) !== normalize(expected)) {
-      return res.status(401).json({ error: "Incorrect passphrase." });
+    res.redirect(data.url);
+  });
+
+  // GET /auth/callback — handle OAuth callback from Supabase
+  app.get("/auth/callback", async (req: Request, res: Response) => {
+    const { code, error } = req.query;
+
+    if (error) {
+      return res.redirect("/#/login?error=" + encodeURIComponent(String(error)));
     }
 
-    setAuthCookie(res);
-    return res.json({ ok: true });
+    if (!code) {
+      return res.redirect("/#/login?error=no_code");
+    }
+
+    try {
+      // Exchange the code for a session
+      const { data, error: sessionError } = await supabase.auth.exchangeCodeForSession(String(code));
+
+      if (sessionError || !data.user) {
+        console.error("OAuth session exchange failed:", sessionError);
+        return res.redirect("/#/login?error=session_failed");
+      }
+
+      const user = data.user;
+      const userId = user.email?.split("@")[0] || user.id;
+      const email = user.email || "";
+
+      // Set auth cookie with user info
+      setAuthCookie(res, userId, email);
+
+      // Redirect to app
+      res.redirect("/#/");
+    } catch (err) {
+      console.error("OAuth callback error:", err);
+      res.redirect("/#/login?error=unknown");
+    }
   });
 
   // GET /auth/logout
-  app.get("/auth/logout", (req: Request, res: Response) => {
+  app.get("/auth/logout", async (req: Request, res: Response) => {
+    // Sign out from Supabase if we have a session
+    await supabase.auth.signOut();
     clearAuthCookie(res);
     res.redirect("/#/login");
   });
 
   // GET /auth/me
   app.get("/auth/me", (req: Request, res: Response) => {
-    if (isAuthenticated(req)) {
-      res.json({ authenticated: true });
+    const user = getCurrentUser(req);
+    if (user) {
+      res.json({ authenticated: true, user_id: user.user_id, email: user.email });
     } else {
       res.json({ authenticated: false });
     }
