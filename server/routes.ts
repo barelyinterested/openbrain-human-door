@@ -26,7 +26,7 @@ export function registerRoutes(httpServer: Server, app: Express) {
       const user = getCurrentUser(req);
       if (!user) return res.status(401).json({ error: "Not authenticated" });
 
-      let url = `${SUPABASE_URL}/rest/v1/thoughts?select=id,content,metadata,user_id,created_at,updated_at&order=created_at.desc`;
+      let url = `${SUPABASE_URL}/rest/v1/thoughts?select=id,content,metadata,created_at,updated_at&order=created_at.desc`;
 
       const resp = await fetch(url, { headers: supabaseHeaders() });
       if (!resp.ok) {
@@ -35,11 +35,11 @@ export function registerRoutes(httpServer: Server, app: Express) {
       }
       let data = await resp.json();
 
-      // Filter by user: show user's own thoughts OR shared thoughts.
-      // Shared content is identified by user_id === 'shared' OR metadata.shared === true
+      // user_id lives inside metadata (metadata->>'user_id' in Postgres).
+      // Show user's own thoughts OR shared thoughts.
       data = data.filter((t: any) =>
-        t.user_id === user.user_id ||
-        t.user_id === "shared" ||
+        t.metadata?.user_id === user.user_id ||
+        t.metadata?.user_id === "shared" ||
         t.metadata?.shared === true
       );
 
@@ -144,15 +144,14 @@ export function registerRoutes(httpServer: Server, app: Express) {
       const user = getCurrentUser(req);
       if (!user) return res.status(401).json({ error: "Not authenticated" });
 
-      const url = `${SUPABASE_URL}/rest/v1/thoughts?select=metadata,user_id,created_at`;
+      const url = `${SUPABASE_URL}/rest/v1/thoughts?select=metadata,created_at`;
       const resp = await fetch(url, { headers: supabaseHeaders() });
       if (!resp.ok) return res.status(resp.status).json({ error: await resp.text() });
       const allData = await resp.json();
 
-      // Filter to user's own thoughts + shared thoughts
       const data = allData.filter((t: any) =>
-        t.user_id === user.user_id ||
-        t.user_id === "shared" ||
+        t.metadata?.user_id === user.user_id ||
+        t.metadata?.user_id === "shared" ||
         t.metadata?.shared === true
       );
 
