@@ -75,6 +75,17 @@ const COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds
 // Allowed emails for authorization - with fallback if env var is not set
 const allowedEmails = (process.env.ALLOWED_EMAILS || "jp@jpruss.com,carola@jpruss.com").split(",").map(e => e.trim().toLowerCase());
 
+// Explicit email → database user_id mapping
+// email.split("@")[0] gives "jp" not "john", so we need this map
+const EMAIL_TO_USER_ID: Record<string, string> = {
+  "jp@jpruss.com": "john",
+  "carola@jpruss.com": "carola",
+};
+
+function emailToUserId(email: string): string {
+  return EMAIL_TO_USER_ID[email.toLowerCase()] ?? email.split("@")[0];
+}
+
 function getSecret(): string {
   return process.env.SESSION_SECRET || "openbrain-dev-secret-change-in-prod";
 }
@@ -209,8 +220,8 @@ export function setupAuth(app: Express) {
       }
 
       const user = data.user;
-      const userId = user.email?.split("@")[0] || user.id;
       const email = user.email || "";
+      const userId = emailToUserId(email);
 
       // Set auth cookie with user info
       setAuthCookie(res, userId, email);
@@ -254,7 +265,7 @@ export function setupAuth(app: Express) {
         console.warn("[/auth/token] Unauthorized email:", email);
         return res.status(403).json({ error: "Email not authorized" });
       }
-      const userId = email.split("@")[0]; // "john" or "carola"
+      const userId = emailToUserId(email);
       setAuthCookie(res, userId, email);
       return res.json({ ok: true, user_id: userId, email });
     } catch (err) {
