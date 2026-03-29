@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 
 // Supabase configuration - lazy initialization to allow debug logging first
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://pqlbnvefkqbfwinfszbf.supabase.co";
+const FALLBACK_BASE_URL = "https://door.nsnc.xyz";
 
 // Debug: log all env vars that contain "SUPABASE" (without exposing values)
 const supabaseEnvVars = Object.keys(process.env).filter(k => k.includes("SUPABASE"));
@@ -127,15 +128,18 @@ export function setupAuth(app: Express) {
     console.log("[/auth/google] Endpoint hit - method:", req.method, "path:", req.path);
     console.log("[/auth/google] Query params:", JSON.stringify(req.query));
       console.log("[/auth/google] Headers:", JSON.stringify({ host: req.headers.host, origin: req.headers.origin, referer: req.headers.referer }));
-      console.log("[/auth/google] BASE_URL env var:", process.env.BASE_URL || "not set");
-    try {
+      console.log("[/auth/google] process.env.BASE_URL:", process.env.BASE_URL || "not set");
+      console.log("[/auth/google] FALLBACK_BASE_URL:", FALLBACK_BASE_URL);
+      const Redirect_URL = process.env.BASE_URL || FALLBACK_BASE_URL;
+      console.log("[/auth/google] Using redirect URL:", Redirect_URL);
+      try {
       console.log("[/auth/google] Calling getSupabaseClient()...");
       const client = getSupabaseClient();
       console.log("[/auth/google] Supabase client obtained, calling signInWithOAuth...");
       const { data, error } = await client.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${process.env.BASE_URL || "https://door.nsnc.xyz"}/auth/callback`,
+          redirectTo: `${Redirect_URL}/auth/callback`,
           // Google-specific parameters must be passed in 'params'
           params: {
             prompt: "select_account",
