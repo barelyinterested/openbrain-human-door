@@ -143,10 +143,9 @@ export function setupAuth(app: Express) {
         options: {
           // Client redirect URL - wouter handles hash routes automatically
           redirectTo: `${Redirect_URL}/oauth/callback`,
-          // Google-specific parameters must be passed in 'params'
-          params: {
+          // queryParams are forwarded to Google's OAuth endpoint
+          queryParams: {
             access_type: "offline",
-            response_type: "code",
             prompt: "select_account",
           },
         },
