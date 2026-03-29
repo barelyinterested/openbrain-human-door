@@ -26,7 +26,7 @@ export function registerRoutes(httpServer: Server, app: Express) {
       const user = getCurrentUser(req);
       if (!user) return res.status(401).json({ error: "Not authenticated" });
 
-      let url = `${SUPABASE_URL}/rest/v1/thoughts?select=id,content,metadata,user_id,shared,created_at,updated_at&order=created_at.desc`;
+      let url = `${SUPABASE_URL}/rest/v1/thoughts?select=id,content,metadata,user_id,created_at,updated_at&order=created_at.desc`;
 
       const resp = await fetch(url, { headers: supabaseHeaders() });
       if (!resp.ok) {
@@ -35,8 +35,8 @@ export function registerRoutes(httpServer: Server, app: Express) {
       }
       let data = await resp.json();
 
-      // Filter by user: show user's own thoughts OR shared thoughts
-      data = data.filter((t: any) => t.user_id === user.user_id || t.shared === true);
+      // Filter by user: show user's own thoughts OR shared thoughts (shared is inside metadata)
+      data = data.filter((t: any) => t.user_id === user.user_id || t.metadata?.shared === true);
 
       // Filter in JS (simpler than Supabase JSON filtering for complex cases)
       if (search && typeof search === "string" && search.trim()) {
@@ -139,13 +139,13 @@ export function registerRoutes(httpServer: Server, app: Express) {
       const user = getCurrentUser(req);
       if (!user) return res.status(401).json({ error: "Not authenticated" });
 
-      const url = `${SUPABASE_URL}/rest/v1/thoughts?select=metadata,user_id,shared,created_at`;
+      const url = `${SUPABASE_URL}/rest/v1/thoughts?select=metadata,user_id,created_at`;
       const resp = await fetch(url, { headers: supabaseHeaders() });
       if (!resp.ok) return res.status(resp.status).json({ error: await resp.text() });
       const allData = await resp.json();
 
-      // Filter to user's own thoughts + shared thoughts
-      const data = allData.filter((t: any) => t.user_id === user.user_id || t.shared === true);
+      // Filter to user's own thoughts + shared thoughts (shared is inside metadata)
+      const data = allData.filter((t: any) => t.user_id === user.user_id || t.metadata?.shared === true);
 
       const types: Record<string, number> = {};
       const sources: Record<string, number> = {};
