@@ -35,8 +35,13 @@ export function registerRoutes(httpServer: Server, app: Express) {
       }
       let data = await resp.json();
 
-      // Filter by user: show user's own thoughts OR shared thoughts (shared is inside metadata)
-      data = data.filter((t: any) => t.user_id === user.user_id || t.metadata?.shared === true);
+      // Filter by user: show user's own thoughts OR shared thoughts.
+      // Shared content is identified by user_id === 'shared' OR metadata.shared === true
+      data = data.filter((t: any) =>
+        t.user_id === user.user_id ||
+        t.user_id === "shared" ||
+        t.metadata?.shared === true
+      );
 
       // Filter in JS (simpler than Supabase JSON filtering for complex cases)
       if (search && typeof search === "string" && search.trim()) {
@@ -144,8 +149,12 @@ export function registerRoutes(httpServer: Server, app: Express) {
       if (!resp.ok) return res.status(resp.status).json({ error: await resp.text() });
       const allData = await resp.json();
 
-      // Filter to user's own thoughts + shared thoughts (shared is inside metadata)
-      const data = allData.filter((t: any) => t.user_id === user.user_id || t.metadata?.shared === true);
+      // Filter to user's own thoughts + shared thoughts
+      const data = allData.filter((t: any) =>
+        t.user_id === user.user_id ||
+        t.user_id === "shared" ||
+        t.metadata?.shared === true
+      );
 
       const types: Record<string, number> = {};
       const sources: Record<string, number> = {};
