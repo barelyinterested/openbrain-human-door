@@ -135,9 +135,12 @@ export function setupAuth(app: Express) {
         provider: "google",
         options: {
           redirectTo: `${process.env.BASE_URL || "https://door.nsnc.xyz"}/auth/callback`,
-          // Force Google to show account picker (even if user is already logged in elsewhere)
-          authProviderHint: "google",
-          prompt: "select_account",
+          // Google-specific parameters must be passed in 'params'
+          params: {
+            prompt: "select_account",
+            access_type: "offline",
+            response_type: "code",
+          },
         },
       });
 
