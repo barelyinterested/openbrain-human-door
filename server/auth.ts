@@ -144,7 +144,6 @@ export function setupAuth(app: Express) {
           redirectTo: `${Redirect_URL}/oauth/callback`,
           // Google-specific parameters must be passed in 'params'
           params: {
-            prompt: "select_account",
             access_type: "offline",
             response_type: "code",
           },
