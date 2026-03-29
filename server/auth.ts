@@ -2,16 +2,35 @@ import type { Express, Request, Response, NextFunction } from "express";
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 
-// Supabase configuration
+// Supabase configuration - lazy initialization to allow debug logging first
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://pqlbnvefkqbfwinfszbf.supabase.co";
+
+// Debug: log all env vars that contain "SUPABASE" (without exposing values)
+const supabaseEnvVars = Object.keys(process.env).filter(k => k.includes("SUPABASE"));
+console.log("DEBUG: Available SUPABASE env vars:", supabaseEnvVars);
+console.log("DEBUG: SUPABASE_SERVICE_ROLE_KEY present:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+console.log("DEBUG: SUPABASE_SERVICE_ROLE_KEY length:", process.env.SUPABASE_SERVICE_ROLE_KEY?.length || 0);
+
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!SUPABASE_SERVICE_ROLE_KEY) {
   console.error("ERROR: SUPABASE_SERVICE_ROLE_KEY environment variable not set!");
-  process.exit(1);
+  console.error("DEBUG: All env var keys:", Object.keys(process.env).sort());
+  // Don't exit immediately - allow the function to respond for debugging
+  // process.exit(1);
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+// Lazy client creation - only create when actually needed
+let _supabase: ReturnType<typeof createClient> | null = null;
+function getSupabaseClient() {
+  if (!_supabase) {
+    if (!SUPABASE_SERVICE_ROLE_KEY) {
+      throw new Error("SUPABASE_SERVICE_ROLE_KEY not set");
+    }
+    _supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+  }
+  return _supabase;
+}
 
 // Sign a value with the session secret so it can't be forged
 function sign(value: string, secret: string): string {
@@ -85,18 +104,24 @@ export function getCurrentUser(req: Request): { user_id: string; email: string }
 export function setupAuth(app: Express) {
   // GET /auth/google — initiate Google OAuth flow via Supabase
   app.get("/auth/google", (req: Request, res: Response) => {
-    const { data, error } = supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${process.env.BASE_URL || "https://door.nsnc.xyz"}/auth/callback`,
-      },
-    });
+    try {
+      const client = getSupabaseClient();
+      const { data, error } = client.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${process.env.BASE_URL || "https://door.nsnc.xyz"}/auth/callback`,
+        },
+      });
 
-    if (error || !data.url) {
-      return res.status(500).json({ error: "Failed to initiate OAuth flow" });
+      if (error || !data.url) {
+        return res.status(500).json({ error: "Failed to initiate OAuth flow" });
+      }
+
+      res.redirect(data.url);
+    } catch (err) {
+      console.error("OAuth init error:", err);
+      return res.status(500).json({ error: "Supabase client not initialized" });
     }
-
-    res.redirect(data.url);
   });
 
   // GET /auth/callback — handle OAuth callback from Supabase
@@ -112,8 +137,9 @@ export function setupAuth(app: Express) {
     }
 
     try {
+      const client = getSupabaseClient();
       // Exchange the code for a session
-      const { data, error: sessionError } = await supabase.auth.exchangeCodeForSession(String(code));
+      const { data, error: sessionError } = await client.auth.exchangeCodeForSession(String(code));
 
       if (sessionError || !data.user) {
         console.error("OAuth session exchange failed:", sessionError);
@@ -137,8 +163,13 @@ export function setupAuth(app: Express) {
 
   // GET /auth/logout
   app.get("/auth/logout", async (req: Request, res: Response) => {
-    // Sign out from Supabase if we have a session
-    await supabase.auth.signOut();
+    try {
+      const client = getSupabaseClient();
+      // Sign out from Supabase if we have a session
+      await client.auth.signOut();
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
     clearAuthCookie(res);
     res.redirect("/#/login");
   });
