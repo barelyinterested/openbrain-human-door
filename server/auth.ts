@@ -54,6 +54,9 @@ function unsign(signed: string, secret: string): string | false {
 const COOKIE_NAME = "ob_auth";
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds
 
+// Allowed emails for authorization - with fallback if env var is not set
+const allowedEmails = (process.env.ALLOWED_EMAILS || "jp@jpruss.com,carola@jpruss.com").split(",").map(e => e.trim().toLowerCase());
+
 function getSecret(): string {
   return process.env.SESSION_SECRET || "openbrain-dev-secret-change-in-prod";
 }
