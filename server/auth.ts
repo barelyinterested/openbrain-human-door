@@ -219,6 +219,33 @@ export function setupAuth(app: Express) {
     res.redirect("/#/login");
   });
 
+  // POST /auth/token — exchange a Supabase access token for an ob_auth session cookie
+  app.post("/auth/token", async (req: Request, res: Response) => {
+    const { access_token } = req.body;
+    if (!access_token || typeof access_token !== "string") {
+      return res.status(400).json({ error: "access_token required" });
+    }
+    try {
+      const client = getSupabaseClient();
+      const { data, error } = await client.auth.getUser(access_token);
+      if (error || !data.user) {
+        console.error("[/auth/token] Invalid token:", error);
+        return res.status(401).json({ error: "Invalid token" });
+      }
+      const email = (data.user.email || "").toLowerCase();
+      if (!allowedEmails.includes(email)) {
+        console.warn("[/auth/token] Unauthorized email:", email);
+        return res.status(403).json({ error: "Email not authorized" });
+      }
+      const userId = email.split("@")[0]; // "john" or "carola"
+      setAuthCookie(res, userId, email);
+      return res.json({ ok: true, user_id: userId, email });
+    } catch (err) {
+      console.error("[/auth/token] Error:", err);
+      return res.status(500).json({ error: "Token validation failed" });
+    }
+  });
+
   // GET /auth/me
   app.get("/auth/me", (req: Request, res: Response) => {
     const user = getCurrentUser(req);

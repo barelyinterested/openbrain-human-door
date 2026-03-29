@@ -1,46 +1,45 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "wouter";
-import { useAuth } from "@/hooks/useAuth";
+import { useLocation } from "wouter";
 
 export default function OAuthCallback() {
-  const [, setLocation] = useNavigate();
-  const { login } = useAuth();
+  const [, setLocation] = useLocation();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const handleOAuthCallback = async () => {
-      const hash = window.location.hash.substring(1); // Remove leading '#'
-      const params = new URLSearchParams(hash);
+      // Supabase returns tokens as hash fragments after implicit-flow OAuth
+      const hash = window.location.hash.replace(/^#\/?oauth\/callback/, "").replace(/^#/, "");
+      const hashParams = new URLSearchParams(hash);
+      // Also check query params in case Supabase switches to PKCE code flow
+      const searchParams = new URLSearchParams(window.location.search);
 
-      const accessToken = params.get("access_token");
-      const refreshToken = params.get("refresh_token");
-      const expiresAt = params.get("expires_at");
-      const errorParam = params.get("error");
-
+      const errorParam = hashParams.get("error") || searchParams.get("error");
       if (errorParam) {
         setError(`OAuth failed: ${errorParam}`);
         return;
       }
 
+      const accessToken = hashParams.get("access_token") || searchParams.get("access_token");
       if (!accessToken) {
-        setError("No access token received");
+        setError("No access token received — check that your Supabase project uses implicit flow");
         return;
       }
 
       try {
-        // Store auth info in localStorage for use by the app
-        localStorage.setItem("sb-auth-token", accessToken);
-        if (refreshToken) {
-          localStorage.setItem("sb-refresh-token", refreshToken);
-        }
-        if (expiresAt) {
-          localStorage.setItem("sb-expires-at", expiresAt);
+        const resp = await fetch("/auth/token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ access_token: accessToken }),
+        });
+
+        if (!resp.ok) {
+          const body = await resp.json().catch(() => ({}));
+          setError(body.error || `Authentication failed (${resp.status})`);
+          return;
         }
 
-        // Trigger auth refresh
-        window.dispatchEvent(new Event("storage"));
-        
-        // Redirect to home
+        // Cookie is now set — navigate to home
         setLocation("/");
       } catch (err) {
         setError("Failed to complete login");
