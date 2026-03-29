@@ -123,7 +123,7 @@ export function getCurrentUser(req: Request): { user_id: string; email: string }
 
 export function setupAuth(app: Express) {
   // GET /auth/google — initiate Google OAuth flow via Supabase
-  app.get("/auth/google", (req: Request, res: Response) => {
+  app.get("/auth/google", async (req: Request, res: Response) => {
     console.log("[/auth/google] Endpoint hit - method:", req.method, "path:", req.path);
     console.log("[/auth/google] Query params:", JSON.stringify(req.query));
     console.log("[/auth/google] Headers:", JSON.stringify({ host: req.headers.host, origin: req.headers.origin, referer: req.headers.referer }));
@@ -131,7 +131,7 @@ export function setupAuth(app: Express) {
       console.log("[/auth/google] Calling getSupabaseClient()...");
       const client = getSupabaseClient();
       console.log("[/auth/google] Supabase client obtained, calling signInWithOAuth...");
-      const { data, error } = client.auth.signInWithOAuth({
+      const { data, error } = await client.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: `${process.env.BASE_URL || "https://door.nsnc.xyz"}/auth/callback`,
