@@ -150,7 +150,9 @@ export function setupAuth(app: Express) {
         return res.status(500).json({ error: "Failed to initiate OAuth flow", details: error?.message || "Unknown error" });
       }
 
-      console.log("[/auth/google] OAuth URL obtained, redirecting to:", data.url.substring(0, 50) + "...");
+      console.log("[/auth/google] OAuth URL obtained:");
+      console.log("[/auth/google]   Full URL: " + data.url);
+      console.log("[/auth/google]   Redirecting to: " + data.url.substring(0, 80) + "...");
       res.redirect(data.url);
     } catch (err) {
       console.error("[/auth/google] ERROR in try-catch:", err);
