@@ -36,9 +36,12 @@ export function registerRoutes(httpServer: Server, app: Express) {
       let data = await resp.json();
 
       // user_id lives inside metadata (metadata->>'user_id' in Postgres).
-      // Show user's own thoughts OR shared thoughts.
+      // Some rows may be tagged with the email local part ("jp") rather than
+      // the canonical name ("john"), so check both.
+      const emailLocalPart = user.email.split("@")[0];
       data = data.filter((t: any) =>
         t.metadata?.user_id === user.user_id ||
+        t.metadata?.user_id === emailLocalPart ||
         t.metadata?.user_id === "shared" ||
         t.metadata?.shared === true
       );
@@ -149,8 +152,10 @@ export function registerRoutes(httpServer: Server, app: Express) {
       if (!resp.ok) return res.status(resp.status).json({ error: await resp.text() });
       const allData = await resp.json();
 
+      const emailLocalPart = user.email.split("@")[0];
       const data = allData.filter((t: any) =>
         t.metadata?.user_id === user.user_id ||
+        t.metadata?.user_id === emailLocalPart ||
         t.metadata?.user_id === "shared" ||
         t.metadata?.shared === true
       );
