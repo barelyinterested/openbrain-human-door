@@ -26,7 +26,7 @@ export function registerRoutes(httpServer: Server, app: Express) {
       const user = getCurrentUser(req);
       if (!user) return res.status(401).json({ error: "Not authenticated" });
 
-      let url = `${SUPABASE_URL}/rest/v1/thoughts?select=id,content,metadata,created_at,updated_at&order=created_at.desc`;
+      let url = `${SUPABASE_URL}/rest/v1/thoughts?select=id,content,metadata,user_id,created_at,updated_at&order=created_at.desc`;
 
       const resp = await fetch(url, { headers: supabaseHeaders() });
       if (!resp.ok) {
@@ -35,16 +35,23 @@ export function registerRoutes(httpServer: Server, app: Express) {
       }
       let data = await resp.json();
 
-      // user_id lives inside metadata (metadata->>'user_id' in Postgres).
-      // Some rows may be tagged with the email local part ("jp") rather than
-      // the canonical name ("john"), so check both.
+      // user_id exists as both a top-level column AND sometimes inside metadata.
+      // Some rows have literal single quotes in the value e.g. "'john'" — strip them.
+      // Also match the email local part ("jp") as a fallback.
       const emailLocalPart = user.email.split("@")[0];
-      data = data.filter((t: any) =>
-        t.metadata?.user_id === user.user_id ||
-        t.metadata?.user_id === emailLocalPart ||
-        t.metadata?.user_id === "shared" ||
-        t.metadata?.shared === true
-      );
+      const strip = (v: any) => typeof v === "string" ? v.replace(/^'|'$/g, "") : v;
+      const isOwn = (t: any) => {
+        const topLevel = strip(t.user_id);
+        const inMeta   = strip(t.metadata?.user_id);
+        return topLevel === user.user_id || topLevel === emailLocalPart ||
+               inMeta   === user.user_id || inMeta   === emailLocalPart;
+      };
+      const isShared = (t: any) =>
+        strip(t.user_id) === "shared" ||
+        strip(t.metadata?.user_id) === "shared" ||
+        t.metadata?.shared === true;
+
+      data = data.filter((t: any) => isOwn(t) || isShared(t));
 
       // Filter in JS (simpler than Supabase JSON filtering for complex cases)
       if (search && typeof search === "string" && search.trim()) {
@@ -147,18 +154,21 @@ export function registerRoutes(httpServer: Server, app: Express) {
       const user = getCurrentUser(req);
       if (!user) return res.status(401).json({ error: "Not authenticated" });
 
-      const url = `${SUPABASE_URL}/rest/v1/thoughts?select=metadata,created_at`;
+      const url = `${SUPABASE_URL}/rest/v1/thoughts?select=metadata,user_id,created_at`;
       const resp = await fetch(url, { headers: supabaseHeaders() });
       if (!resp.ok) return res.status(resp.status).json({ error: await resp.text() });
       const allData = await resp.json();
 
-      const emailLocalPart = user.email.split("@")[0];
-      const data = allData.filter((t: any) =>
-        t.metadata?.user_id === user.user_id ||
-        t.metadata?.user_id === emailLocalPart ||
-        t.metadata?.user_id === "shared" ||
-        t.metadata?.shared === true
-      );
+      const emailLocalPart2 = user.email.split("@")[0];
+      const strip2 = (v: any) => typeof v === "string" ? v.replace(/^'|'$/g, "") : v;
+      const data = allData.filter((t: any) => {
+        const topLevel = strip2(t.user_id);
+        const inMeta   = strip2(t.metadata?.user_id);
+        const own = topLevel === user.user_id || topLevel === emailLocalPart2 ||
+                    inMeta   === user.user_id || inMeta   === emailLocalPart2;
+        const shared = topLevel === "shared" || inMeta === "shared" || t.metadata?.shared === true;
+        return own || shared;
+      });
 
       const types: Record<string, number> = {};
       const sources: Record<string, number> = {};
