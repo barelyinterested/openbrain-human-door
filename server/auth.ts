@@ -126,7 +126,8 @@ export function setupAuth(app: Express) {
   app.get("/auth/google", async (req: Request, res: Response) => {
     console.log("[/auth/google] Endpoint hit - method:", req.method, "path:", req.path);
     console.log("[/auth/google] Query params:", JSON.stringify(req.query));
-    console.log("[/auth/google] Headers:", JSON.stringify({ host: req.headers.host, origin: req.headers.origin, referer: req.headers.referer }));
+      console.log("[/auth/google] Headers:", JSON.stringify({ host: req.headers.host, origin: req.headers.origin, referer: req.headers.referer }));
+      console.log("[/auth/google] BASE_URL env var:", process.env.BASE_URL || "not set");
     try {
       console.log("[/auth/google] Calling getSupabaseClient()...");
       const client = getSupabaseClient();
