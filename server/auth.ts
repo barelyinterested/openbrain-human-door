@@ -23,11 +23,28 @@ if (!SUPABASE_SERVICE_KEY) {
 // Lazy client creation - only create when actually needed
 let _supabase: ReturnType<typeof createClient> | null = null;
 function getSupabaseClient() {
+  console.log("[getSupabaseClient] Function called, _supabase initialized:", !!_supabase);
   if (!_supabase) {
+    console.log("[getSupabaseClient] Creating new Supabase client...");
+    console.log("[getSupabaseClient] SUPABASE_URL:", SUPABASE_URL);
+    console.log("[getSupabaseClient] SUPABASE_SERVICE_KEY present:", !!SUPABASE_SERVICE_KEY);
+    console.log("[getSupabaseClient] SUPABASE_SERVICE_KEY length:", SUPABASE_SERVICE_KEY?.length || 0);
+    console.log("[getSupabaseClient] SUPABASE_SERVICE_KEY first 8 chars:", SUPABASE_SERVICE_KEY ? SUPABASE_SERVICE_KEY.substring(0, 8) + "..." : "N/A");
+    
     if (!SUPABASE_SERVICE_KEY) {
+      console.error("[getSupabaseClient] ERROR: SUPABASE_SERVICE_KEY is not set!");
       throw new Error("SUPABASE_SERVICE_KEY not set");
     }
-    _supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+    
+    try {
+      console.log("[getSupabaseClient] Calling createClient...");
+      _supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
+      console.log("[getSupabaseClient] Supabase client created successfully!");
+    } catch (err) {
+      console.error("[getSupabaseClient] ERROR during createClient:", err);
+      console.error("[getSupabaseClient] Error details:", JSON.stringify(err, Object.getOwnPropertyNames(err)));
+      throw err;
+    }
   }
   return _supabase;
 }
@@ -107,8 +124,13 @@ export function getCurrentUser(req: Request): { user_id: string; email: string }
 export function setupAuth(app: Express) {
   // GET /auth/google — initiate Google OAuth flow via Supabase
   app.get("/auth/google", (req: Request, res: Response) => {
+    console.log("[/auth/google] Endpoint hit - method:", req.method, "path:", req.path);
+    console.log("[/auth/google] Query params:", JSON.stringify(req.query));
+    console.log("[/auth/google] Headers:", JSON.stringify({ host: req.headers.host, origin: req.headers.origin, referer: req.headers.referer }));
     try {
+      console.log("[/auth/google] Calling getSupabaseClient()...");
       const client = getSupabaseClient();
+      console.log("[/auth/google] Supabase client obtained, calling signInWithOAuth...");
       const { data, error } = client.auth.signInWithOAuth({
         provider: "google",
         options: {
@@ -117,13 +139,17 @@ export function setupAuth(app: Express) {
       });
 
       if (error || !data.url) {
-        return res.status(500).json({ error: "Failed to initiate OAuth flow" });
+        console.error("[/auth/google] signInWithOAuth error:", error);
+        console.error("[/auth/google] signInWithOAuth data:", data);
+        return res.status(500).json({ error: "Failed to initiate OAuth flow", details: error?.message || "Unknown error" });
       }
 
+      console.log("[/auth/google] OAuth URL obtained, redirecting to:", data.url.substring(0, 50) + "...");
       res.redirect(data.url);
     } catch (err) {
-      console.error("OAuth init error:", err);
-      return res.status(500).json({ error: "Supabase client not initialized" });
+      console.error("[/auth/google] ERROR in try-catch:", err);
+      console.error("[/auth/google] Error details:", JSON.stringify(err, Object.getOwnPropertyNames(err)));
+      return res.status(500).json({ error: "Supabase client not initialized", details: err instanceof Error ? err.message : String(err) });
     }
   });
 
