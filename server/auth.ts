@@ -141,6 +141,7 @@ export function setupAuth(app: Express) {
       const { data, error } = await client.auth.signInWithOAuth({
         provider: "google",
         options: {
+          // Client redirect URL - wouter handles hash routes automatically
           redirectTo: `${Redirect_URL}/oauth/callback`,
           // Google-specific parameters must be passed in 'params'
           params: {

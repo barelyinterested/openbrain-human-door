@@ -14,6 +14,7 @@ import Layout from "@/components/Layout";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { useAuth } from "@/hooks/useAuth";
 import { SearchProvider } from "@/lib/searchContext";
+import OAuthCallback from "@/pages/OAuthCallback";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -40,6 +41,7 @@ function AppRouter() {
     <Router hook={useHashLocation}>
       <Switch>
         <Route path="/login" component={Login} />
+        <Route path="/oauth/callback" component={OAuthCallback} />
         <Route path="/category/:key">
           <Layout><ProtectedRoute component={CategoryView} /></Layout>
         </Route>
