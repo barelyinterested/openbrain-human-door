@@ -123,6 +123,23 @@ export function getCurrentUser(req: Request): { user_id: string; email: string }
 }
 
 export function setupAuth(app: Express) {
+  // GET /oauth/callback — Supabase redirects here with tokens in the hash fragment.
+  // Hash fragments never reach the server, so we serve a small redirect page that:
+  //   1. Reads the tokens from the hash
+  //   2. Stashes them in sessionStorage
+  //   3. Navigates to /#/oauth/callback so the React hash-router can render OAuthCallback
+  app.get("/oauth/callback", (_req: Request, res: Response) => {
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.send(`<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Signing in…</title></head>
+<body><script>
+  var h = window.location.hash.replace(/^#/, '');
+  if (h) sessionStorage.setItem('oauth_params', h);
+  window.location.replace('/#/oauth/callback');
+</script></body></html>`);
+  });
+
   // GET /auth/google — initiate Google OAuth flow via Supabase
   app.get("/auth/google", async (req: Request, res: Response) => {
     console.log("[/auth/google] Endpoint hit - method:", req.method, "path:", req.path);
