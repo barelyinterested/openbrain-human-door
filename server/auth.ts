@@ -158,7 +158,8 @@ export function setupAuth(app: Express) {
 
       console.log("[/auth/google] OAuth URL obtained:");
       console.log("[/auth/google]   Full URL: " + data.url);
-      console.log("[/auth/google]   Redirecting to: " + data.url.substring(0, 80) + "...");
+      console.log("[/auth/google]   Redirect URL (for debugging): " + data.url.substring(0, 120) + "...");
+      console.log("[/auth/google]   Redirect URL decoded: " + decodeURIComponent(data.url));
       res.redirect(data.url);
     } catch (err) {
       console.error("[/auth/google] ERROR in try-catch:", err);
