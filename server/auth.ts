@@ -8,13 +8,13 @@ const SUPABASE_URL = process.env.SUPABASE_URL || "https://pqlbnvefkqbfwinfszbf.s
 // Debug: log all env vars that contain "SUPABASE" (without exposing values)
 const supabaseEnvVars = Object.keys(process.env).filter(k => k.includes("SUPABASE"));
 console.log("DEBUG: Available SUPABASE env vars:", supabaseEnvVars);
-console.log("DEBUG: SUPABASE_SERVICE_ROLE_KEY present:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
-console.log("DEBUG: SUPABASE_SERVICE_ROLE_KEY length:", process.env.SUPABASE_SERVICE_ROLE_KEY?.length || 0);
+console.log("DEBUG: SUPABASE_SERVICE_KEY present:", !!process.env.SUPABASE_SERVICE_KEY);
+console.log("DEBUG: SUPABASE_SERVICE_KEY length:", process.env.SUPABASE_SERVICE_KEY?.length || 0);
 
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
-if (!SUPABASE_SERVICE_ROLE_KEY) {
-  console.error("ERROR: SUPABASE_SERVICE_ROLE_KEY environment variable not set!");
+if (!SUPABASE_SERVICE_KEY) {
+  console.error("ERROR: SUPABASE_SERVICE_KEY environment variable not set!");
   console.error("DEBUG: All env var keys:", Object.keys(process.env).sort());
   // Don't exit immediately - allow the function to respond for debugging
   // process.exit(1);
@@ -24,10 +24,10 @@ if (!SUPABASE_SERVICE_ROLE_KEY) {
 let _supabase: ReturnType<typeof createClient> | null = null;
 function getSupabaseClient() {
   if (!_supabase) {
-    if (!SUPABASE_SERVICE_ROLE_KEY) {
-      throw new Error("SUPABASE_SERVICE_ROLE_KEY not set");
+    if (!SUPABASE_SERVICE_KEY) {
+      throw new Error("SUPABASE_SERVICE_KEY not set");
     }
-    _supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    _supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
   }
   return _supabase;
 }
