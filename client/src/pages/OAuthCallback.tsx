@@ -7,21 +7,21 @@ export default function OAuthCallback() {
 
   useEffect(() => {
     const handleOAuthCallback = async () => {
-      // Supabase returns tokens as hash fragments after implicit-flow OAuth
-      const hash = window.location.hash.replace(/^#\/?oauth\/callback/, "").replace(/^#/, "");
-      const hashParams = new URLSearchParams(hash);
-      // Also check query params in case Supabase switches to PKCE code flow
-      const searchParams = new URLSearchParams(window.location.search);
+      // Tokens were stashed in sessionStorage by main.tsx when Supabase
+      // redirected to /oauth/callback#access_token=...
+      const stored = sessionStorage.getItem("oauth_params") || "";
+      sessionStorage.removeItem("oauth_params");
+      const params = new URLSearchParams(stored);
 
-      const errorParam = hashParams.get("error") || searchParams.get("error");
+      const errorParam = params.get("error");
       if (errorParam) {
         setError(`OAuth failed: ${errorParam}`);
         return;
       }
 
-      const accessToken = hashParams.get("access_token") || searchParams.get("access_token");
+      const accessToken = params.get("access_token");
       if (!accessToken) {
-        setError("No access token received — check that your Supabase project uses implicit flow");
+        setError("No access token received — ensure Supabase is using implicit flow");
         return;
       }
 
