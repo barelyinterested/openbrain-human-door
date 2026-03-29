@@ -136,6 +136,8 @@ export function setupAuth(app: Express) {
       console.log("[/auth/google] Calling getSupabaseClient()...");
       const client = getSupabaseClient();
       console.log("[/auth/google] Supabase client obtained, calling signInWithOAuth...");
+      console.log("[/auth/google] Google OAuth config check: ensure web app client ID/secret in Supabase match Google Cloud Console");
+      console.log("[/auth/google] Google Cloud Console should have this redirect URI registered: https://door.nsnc.xyz/auth/callback");
       const { data, error } = await client.auth.signInWithOAuth({
         provider: "google",
         options: {
